@@ -155,12 +155,12 @@ def img_re(imgs, detection=False):
         imgs = detections(imgs)
     return normalize_255(imgs)
 
-def predict_img_cycle(img_list, model):
+def predict_img_cycle(img_list, model, full_model):
     imgs = img_list.copy()
     imgs_32 = [cv2.resize(img, (32,32), cv2.INTER_LANCZOS4) for img in imgs]
     img_de = detections(imgs_32)
     img_scale = normalize_127(img_de)   
-    pred_img = generator_g(img_scale)
+    pred_img = full_model(img_scale)
     pred_1 = (pred_img.numpy() + 1) * 127.5 / 255.
     dicts = {0 : "T-shirt/top",    
        1 : "Trouser",    
@@ -173,14 +173,10 @@ def predict_img_cycle(img_list, model):
        8 : "Bag",    
        9 : "Ankel boot"}
 
-    import numpy as np
-    pred_list = []
-    for i in pred_1:
-        img = cv2.resize(np.squeeze(i, -1), (28,28), cv2.INTER_LANCZOS4) 
-        pred_list.append(img)
-    img_list = np.expand_dims(pred_list, -1)
-    pred = model.predict(img_list)
+    imgs_28 = [cv2.resize(np.squeeze(img,-1), (28,28), cv2.INTER_LANCZOS4).reshape(28,28,1) for img in pred_1]
+    pred = model.predict(np.array(imgs_28))
     label = np.argmax(pred, axis=1)
+
     n = len(img_list)
     fig, ax = plt.subplots(n, 2, figsize=(8, 8))
     for i, k in enumerate(img_list):
